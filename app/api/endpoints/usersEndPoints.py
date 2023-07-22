@@ -3,6 +3,10 @@
 
 from fastapi import APIRouter, HTTPException, Depends
 
+# IMPORT SQLALCHEMY METHODS
+
+from sqlalchemy import exc
+
 # IMPORT MODELS
 
 from app.api.models.modelsUsers import User, createUser
@@ -21,7 +25,7 @@ router = APIRouter()
 
 # OPERATIONAL PATHS FIR CRUD USERS
 
-@router.post("/users/createUser/", response_model=User)
+@router.post("/users/createUserV1/", response_model=User)
 def create_user(user_create: createUser, current_user: dict = Depends(get_current_user)):
     conn = get_connection()
 
@@ -38,17 +42,17 @@ def create_user(user_create: createUser, current_user: dict = Depends(get_curren
 
         result = conn.execute(
             usuarios.insert().values(
-                documento_Usuario= user_create.documento_Usuario,
-                nombreApellido_Usuario= user_create.nombreApellido_Usuario,
-                telefono_Usuario= user_create.telefono_Usuario,
-                correo_Usuario= user_create.correo_Usuario,
-                suscripciones_Habilitadas= user_create.suscripciones_Habilitadas
+                documentoUsuario= user_create.documento_Usuario,
+                nombre_ApellidoUsuario= user_create.nombreApellido_Usuario,
+                telefonoUsuario= user_create.telefono_Usuario,
+                correoUsuario= user_create.correo_Usuario,
+                suscripcionesHabilitadas= user_create.suscripciones_Habilitadas
             )
         )
 
         user_id = result.lastrowid
         
-        conn.close()
+        # conn.close()
 
         return {
             "id_Usuario": user_id,
@@ -59,11 +63,15 @@ def create_user(user_create: createUser, current_user: dict = Depends(get_curren
             "suscripcionesHabilitadas": user_create.suscripciones_habilitadas
         }
 
+    except exc.OperationalError as op_err:
+        raise HTTPException(status_code=500, detail=f"Error operacional en la base de datos: {str(op_err)}")
+    except exc.IntegrityError as int_err:
+        raise HTTPException(status_code=500, detail=f"Error de integridad de la base de datos: {str(int_err)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail='Internal server error!')
+        raise HTTPException(status_code=500, detail=f'Error interno del servidor! - - {e}')
 
 
-@router.get("/users/getUserV1/{documentoUsuario}", response_model=User)
+@router.get("/users/getUserV2/{documentoUsuario}", response_model=User)
 async def get_user_by_document(documentoUsuario: str, user: dict = Depends(get_current_user)):
     conn = get_connection()
 
@@ -87,9 +95,9 @@ async def get_user_by_document(documentoUsuario: str, user: dict = Depends(get_c
             suscripciones_Habilitadas=result["suscripcionesHabilitadas"]
         )
             
-        conn.close()
+        # conn.close()
 
         return userData
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal server error!")
+        raise HTTPException(status_code=500, detail=f"Internal server error! - {str(e)}")
