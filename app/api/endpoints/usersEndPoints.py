@@ -71,8 +71,9 @@ async def get_user_by_document(documentoUsuario: str, user: dict = Depends(get_c
         raise HTTPException(status_code=401, detail='Token inválido')
 
     try:
-        query = "SELECT * FROM usuarios WHERE documentoUsuario=:documentoUsuario"
-        result = conn.execute(query, {"documentoUsuario": documentoUsuario}).fetchone()
+        result = conn.execute(
+            usuarios.select().where(usuarios.c.documentoUsuario == documentoUsuario)
+        ).fetchone()
         
         if result is None:
             raise HTTPException(status_code=404, detail="Users not found!")
